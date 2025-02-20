@@ -1,5 +1,18 @@
 # Activate the conda environment before running this script: conda activate orbitAnalyisis
 
+# author: Uwe Sterr ST2C
+# date:Feb 2025
+# parameters to set
+# 1. TLE data for the satellite of interest
+#  the variable is called line1 and line2
+# 2. Time period for the analysis
+#  the variable is called start_time and end_time
+# 3. Location of the OGS
+# the variable is called ogs
+# 4. Elevation threshold for pass analysis
+#  the variable is called high_elevation_threshold
+
+
 # Import required libraries
 import numpy as np
 import matplotlib.pyplot as plt
@@ -40,13 +53,13 @@ high_elevation_threshold = 84  # Only passes where elevation exceeds this value 
 
 # Define the simulation period: starting at the current UTC time for 20 days
 start_time = ts.utc(2023, 1, 1)
-end_time = start_time + timedelta(days=15)
+end_time = start_time + timedelta(days=365)
 num_days = (end_time.utc_datetime() - start_time.utc_datetime()).days  # Compute the number of days in simulation
 
 # Time step settings:
 # When the satellite is not in a pass (elevation <= 10°), use a normal time step in seconds.
 # When the satellite is in a pass (elevation > 10°), use a finer time step in seconds.
-normal_time_step = 180  # seconds (instead of 3 minutes)
+normal_time_step = 10  # seconds (instead of 3 minutes)
 pass_time_step = 1     # seconds
 
 # Data storage lists to hold various calculated metrics for each pass
