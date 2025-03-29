@@ -329,7 +329,7 @@ def create_plots(all_passes_df, high_passes_df):
 # Main execution starts here
 if __name__ == "__main__":
     # Satellite parameters
-    tle_name ="Eagle-1"
+    tle_name ="Bird-1"
     line1 = "1 00001U 23001A   23001.00000000  .00000000  00000-0  00000-0 0  0001"
     line2 = "2 00001  97.8000 295.0000 0001000  0.0000  0.0000 15.23000000 00001"
 
