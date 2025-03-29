@@ -58,6 +58,15 @@ def run_simulation():
     min_distances = []               # Minimum distance (km) between OGS and satellite during each pass
     pass_indices = []                # Index of passes exceeding the threshold
 
+    # Additional data storage for detailed link information at each time step
+    link_data = {
+        'time_tag': [],
+        'azimuth': [],
+        'elevation': [],
+        'distance_km': [],
+        'link_id': []
+    }
+
     # Initialize pass tracking variables
     max_elevation = 0
     pass_start_time = None
@@ -68,6 +77,7 @@ def run_simulation():
     azimuth_end = None
     in_pass = False  # Flag to indicate if we are currently in a pass (satellite is above 10°)
     pass_idx = 0     # Counter for passes
+    current_link_id = 0  # To track different passes as links
 
     # Loop through the simulation period
     t = start_time
@@ -92,9 +102,18 @@ def run_simulation():
                 azimuth_start = None  
                 # Initialize the minimum distance for this pass to a very high value
                 pass_min_distance = float('inf')
+                # Start a new link ID for this pass
+                current_link_id += 1
 
             # Update the minimum distance observed during the pass
             pass_min_distance = min(pass_min_distance, current_distance)
+
+            # Record data for this timestep
+            link_data['time_tag'].append(t.utc_datetime())
+            link_data['azimuth'].append(azimuth)
+            link_data['elevation'].append(elevation)
+            link_data['distance_km'].append(current_distance)
+            link_data['link_id'].append(current_link_id)
 
             # Update the maximum elevation reached during the pass
             if elevation > max_elevation:
@@ -154,6 +173,9 @@ def run_simulation():
         # Increment time by the appropriate time step
         t = ts.utc(t.utc_datetime() + time_step)
 
+    # Create the link DataFrame from the collected data
+    link_df = pd.DataFrame(link_data)
+
     # Create DataFrames from the results
     # DataFrame for all passes
     all_passes_df = pd.DataFrame({
@@ -168,14 +190,18 @@ def run_simulation():
         'duration_above_threshold_minutes': elevation_threshold_durations,
         'azimuth_change': azimuth_changes,
         'azimuth_rate': azimuth_rates,
-        'min_distance_km': min_distances
+        'min_distance_km': min_distances,
+        'link_id': [link_ids[i] for i in pass_indices]  # Add link_ids for high elevation passes
+
     })
     
     # Create a combined DataFrame with all data
     combined_df = pd.DataFrame({
         'pass_time': pass_times,
         'max_elevation': max_elevations,
-        'pass_duration_minutes': pass_durations
+        'pass_duration_minutes': pass_durations,
+        'link_id': [link_ids[i] for i in pass_indices]  # Add link_ids for high elevation passes
+
     })
     
     # Add columns for high elevation data (will be NaN for passes that don't exceed threshold)
@@ -192,7 +218,7 @@ def run_simulation():
         combined_df.loc[pass_idx, 'azimuth_rate'] = row['azimuth_rate']
         combined_df.loc[pass_idx, 'min_distance_km'] = row['min_distance_km']
     
-    return combined_df, all_passes_df, high_passes_df
+    return combined_df, all_passes_df, high_passes_df, link_df
 
 # Function to create plots from the data in the DataFrames
 def create_plots(all_passes_df, high_passes_df):
@@ -338,21 +364,36 @@ if __name__ == "__main__":
             high_passes_df = combined_df.dropna(subset=['duration_above_threshold_minutes']).copy()
             high_passes_df['pass_index'] = high_passes_df.index
             
+            # Load link data if it exists
+            link_file = os.path.splitext(data_file)[0] + "_links.feather"
+            if os.path.exists(link_file):
+                link_df = pd.read_feather(link_file)
+                print(f"Loaded link data with {len(link_df)} time points")
+                # Convert timestamp column back to datetime if needed
+                if not pd.api.types.is_datetime64_dtype(link_df['time_tag']):
+                    link_df['time_tag'] = pd.to_datetime(link_df['time_tag'])
+            else:
+                link_df = pd.DataFrame()  # Empty DataFrame if no link data available
+            
         except Exception as e:
             print(f"Error loading data: {e}")
             print("Running new simulation instead...")
-            combined_df, all_passes_df, high_passes_df = run_simulation()
+            combined_df, all_passes_df, high_passes_df, link_df = run_simulation()
             
-            # Save results to a Feather file
+            # Save results to Feather files
             combined_df.reset_index().to_feather(data_file)
-            print(f"Saved new simulation data to {data_file}")
+            link_file = os.path.splitext(data_file)[0] + "_links.feather"
+            link_df.to_feather(link_file)
+            print(f"Saved new simulation data to {data_file} and {link_file}")
     else:
         # Run a new simulation
-        combined_df, all_passes_df, high_passes_df = run_simulation()
+        combined_df, all_passes_df, high_passes_df, link_df = run_simulation()
         
-        # Save results to a Feather file
+        # Save results to Feather files
         combined_df.reset_index().to_feather(data_file)
-        print(f"Saved simulation data to {data_file}")
+        link_file = os.path.splitext(data_file)[0] + "_links.feather"
+        link_df.to_feather(link_file)
+        print(f"Saved simulation data to {data_file} and {link_file}")
     
     # Generate plots regardless of whether we loaded or simulated data
     filename_prefix = create_plots(all_passes_df, high_passes_df)
