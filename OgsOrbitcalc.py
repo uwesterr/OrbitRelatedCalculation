@@ -191,7 +191,7 @@ def run_simulation():
         'azimuth_change': azimuth_changes,
         'azimuth_rate': azimuth_rates,
         'min_distance_km': min_distances,
-        'link_id': [link_ids[i] for i in pass_indices]  # Add link_ids for high elevation passes
+        'link_id': pass_idx
 
     })
     
@@ -200,7 +200,7 @@ def run_simulation():
         'pass_time': pass_times,
         'max_elevation': max_elevations,
         'pass_duration_minutes': pass_durations,
-        'link_id': [link_ids[i] for i in pass_indices]  # Add link_ids for high elevation passes
+        'link_id': pass_idx
 
     })
     
@@ -209,6 +209,7 @@ def run_simulation():
     combined_df['azimuth_change'] = np.nan
     combined_df['azimuth_rate'] = np.nan
     combined_df['min_distance_km'] = np.nan
+    combined_df['link_id'] = np.nan
     
     # Fill in high elevation data where applicable
     for idx, row in high_passes_df.iterrows():
@@ -217,6 +218,7 @@ def run_simulation():
         combined_df.loc[pass_idx, 'azimuth_change'] = row['azimuth_change']
         combined_df.loc[pass_idx, 'azimuth_rate'] = row['azimuth_rate']
         combined_df.loc[pass_idx, 'min_distance_km'] = row['min_distance_km']
+        combined_df.loc[pass_idx, 'link_id'] = row['link_id']
     
     return combined_df, all_passes_df, high_passes_df, link_df
 

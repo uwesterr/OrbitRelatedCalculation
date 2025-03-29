@@ -28,7 +28,7 @@ ogs = wgs84.latlon(ogs_lat, ogs_lon)
 high_elevation_threshold = st.sidebar.slider("Elevation Threshold (°)", min_value=10, max_value=90, value=86)
 
 # User input for number of simulation days
-num_days = st.sidebar.slider("Simulation Duration (days)", min_value=1, max_value=30, value=2)
+num_days = st.sidebar.number_input("Simulation Duration (days)", min_value=1, max_value=30, value=2)
 
 # Set the simulation period
 start_time = ts.utc(datetime.utcnow().replace(tzinfo=utc))
